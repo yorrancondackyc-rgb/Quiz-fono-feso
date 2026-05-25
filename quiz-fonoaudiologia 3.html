@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz — Fonoaudiologia</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;0,900;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0f4f8;
+    --card: #f8fbff;
+    --ink: #101620;
+    --muted: #5a6a80;
+    --accent: #2a5fa8;
+    --accent2: #1a3f78;
+    --ok: #1a5c8a;
+    --err: #b03020;
+    --warn: #2a7ab8;
+    --border: #bdd0e8;
+    --radius: 16px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 10%, rgba(42,95,168,0.10) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 80% 90%, rgba(26,63,120,0.08) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .screen {
+    display: none;
+    width: 100%;
+    max-width: 680px;
+    position: relative;
+    z-index: 1;
+  }
+  .screen.active { display: block; }
+
+  /* ── INTRO ── */
+  .intro-card {
+    background: var(--card);
+    border-radius: 24px;
+    padding: 56px 48px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  .intro-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 99px;
+    margin-bottom: 28px;
+  }
+  .intro-title {
+    font-family: 'Fraunces', serif;
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--ink);
+    line-height: 1.05;
+    margin-bottom: 12px;
+  }
+  .intro-sub {
+    font-size: 15px;
+    color: var(--muted);
+    margin-bottom: 40px;
+    line-height: 1.6;
+  }
+  .info-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 40px;
+  }
+  .info-pill {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .info-pill strong { color: var(--ink); display: block; font-size: 18px; }
+
+  .btn-start {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 18px 48px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 16px rgba(42,95,168,0.35);
+  }
+  .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(42,95,168,0.4); }
+  .btn-start:active { transform: translateY(0); }
+
+  /* ── QUIZ ── */
+  .quiz-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .q-counter {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .q-counter span { color: var(--ink); font-size: 22px; font-family: 'Fraunces', serif; font-weight: 900; }
+
+  .timer-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 8px 18px;
+  }
+  .timer-num {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--ink);
+    min-width: 28px;
+    text-align: center;
+    transition: color 0.3s;
+  }
+  .timer-num.urgent { color: var(--err); }
+  .timer-label { font-size: 11px; color: var(--muted); }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 99px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width 0.4s ease;
+  }
+
+  .q-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 36px 40px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+  .q-type-tag {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  .q-text {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.45;
+    margin-bottom: 28px;
+  }
+
+  /* alternativas */
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .opt-btn {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    line-height: 1.4;
+  }
+  .opt-btn:hover:not(:disabled) { border-color: var(--accent); background: #fff; transform: translateX(4px); }
+  .opt-btn.correct { background: #e8f5ec; border-color: var(--ok); color: var(--ok); font-weight: 500; }
+  .opt-btn.wrong   { background: #fde8e4; border-color: var(--err); color: var(--err); }
+  .opt-btn.reveal  { background: #e8f5ec; border-color: var(--ok); }
+  .opt-btn:disabled { cursor: default; }
+
+  /* dissertativa */
+  .disc-area {
+    width: 100%;
+    min-height: 100px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--bg);
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s;
+    line-height: 1.6;
+  }
+  .disc-area:focus { border-color: var(--accent); background: #fff; }
+
+  .btn-confirm {
+    margin-top: 16px;
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 13px 32px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-confirm:hover { opacity: 0.85; }
+
+  .feedback-box {
+    margin-top: 20px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    display: none;
+  }
+  .feedback-box.ok  { background: #e8f5ec; color: #2a5235; border: 1px solid #b8ddc4; }
+  .feedback-box.err { background: #fde8e4; color: #7a2010; border: 1px solid #f0c4bc; }
+  .feedback-box.partial { background: #fef6e4; color: #7a5010; border: 1px solid #f0d890; }
+  .feedback-label { font-weight: 700; margin-bottom: 4px; }
+
+  .btn-next {
+    margin-top: 20px;
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 15px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    display: none;
+    transition: opacity 0.15s;
+  }
+  .btn-next:hover { opacity: 0.88; }
+
+  /* ── RESULTADO ── */
+  .result-card {
+    background: var(--card);
+    border-radius: 24px;
+    padding: 48px 40px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+  .result-title {
+    font-family: 'Fraunces', serif;
+    font-size: 38px;
+    font-weight: 900;
+    color: var(--ink);
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .result-score {
+    font-family: 'Fraunces', serif;
+    font-size: 72px;
+    font-weight: 900;
+    color: var(--accent);
+    text-align: center;
+    line-height: 1;
+    margin: 20px 0 4px;
+  }
+  .result-label {
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 36px;
+  }
+
+  .gabarito-title {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+  .gab-item {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .gab-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    background: var(--bg);
+    cursor: pointer;
+    user-select: none;
+  }
+  .gab-num {
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    font-size: 18px;
+    color: var(--ink);
+    min-width: 24px;
+  }
+  .gab-q-preview {
+    font-size: 13px;
+    color: var(--muted);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .gab-status {
+    font-size: 18px;
+  }
+  .gab-body {
+    display: none;
+    padding: 16px 18px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+  .gab-body.open { display: block; }
+  .gab-answer-label { font-weight: 700; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .gab-correct { color: var(--ok); font-weight: 600; }
+  .gab-user   { margin-top: 10px; }
+  .gab-explanation { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); color: var(--muted); font-size: 12px; }
+
+  .btn-retry {
+    margin-top: 28px;
+    width: 100%;
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-retry:hover { opacity: 0.85; }
+
+  @media (max-width: 520px) {
+    .intro-card, .result-card { padding: 36px 24px; }
+    .q-card { padding: 28px 24px; }
+    .intro-title { font-size: 36px; }
+    .info-row { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<!-- INTRO -->
+<div class="screen active" id="screen-intro">
+  <div class="intro-card">
+    <div class="intro-badge">UNIFESO · Fonoaudiologia</div>
+    <h1 class="intro-title">Quiz de<br>Atuação Fono</h1>
+    <p class="intro-sub">Teste seus conhecimentos sobre a atuação interprofissional e as áreas da Fonoaudiologia.</p>
+    <div class="info-row">
+      <div class="info-pill"><strong>10</strong> questões</div>
+      <div class="info-pill"><strong>20s</strong> alternativas</div>
+      <div class="info-pill"><strong>30s</strong> dissertativas</div>
+    </div>
+    <button class="btn-start" onclick="startQuiz()">Iniciar Quiz →</button>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div class="screen" id="screen-quiz">
+  <div class="quiz-header">
+    <div class="q-counter">Questão <span id="q-num">1</span> de 10</div>
+    <div class="timer-wrap">
+      <div class="timer-num" id="timer-num">15</div>
+      <div class="timer-label">seg</div>
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="q-card">
+    <div class="q-type-tag" id="q-type-tag"></div>
+    <div class="q-text" id="q-text"></div>
+    <div id="q-options-wrap"></div>
+    <div class="feedback-box" id="feedback-box">
+      <div class="feedback-label" id="feedback-label"></div>
+      <div id="feedback-text"></div>
+    </div>
+    <button class="btn-next" id="btn-next" onclick="nextQuestion()">Próxima →</button>
+  </div>
+</div>
+
+<!-- RESULTADO -->
+<div class="screen" id="screen-result">
+  <div class="result-card">
+    <p class="result-title" id="result-emoji"></p>
+    <div class="result-score" id="result-score"></div>
+    <p class="result-label" id="result-label"></p>
+    <div class="gabarito-title">Gabarito completo</div>
+    <div id="gabarito-list"></div>
+
+  </div>
+</div>
+
+<script>
+const questions = [
+  {
+    id: 1,
+    type: 'dissertativa',
+    text: 'O que é a Fonoaudiologia? Cite ao menos duas áreas de atuação.',
+    answer: null,
+    keywords: ['comunicação','linguagem','fala','audição','voz','deglutição','motricidade','fonoaudiólogo','saúde'],
+    explanation: 'A Fonoaudiologia é a ciência que estuda, pesquisa, previne, avalia, diagnostica e trata distúrbios da comunicação humana, abrangendo fala, linguagem, voz, audição e deglutição.'
+  },
+  {
+    id: 2,
+    type: 'alternativa',
+    text: 'Em uma investigação judicial, foi necessário analisar um áudio para identificar características da voz, padrões de fala, ritmo, entonação, sotaque e articulação de um investigado. Quais profissionais poderiam atuar em conjunto?',
+    options: ['A) Direito + Psicologia', 'B) Direito + Perícia Criminal', 'C) Direito + Fonoaudiologia'],
+    correct: 2,
+    explanation: 'O fonoaudiólogo pode atuar na área pericial, analisando fala, respiração e características vocais em áudios e gravações, contribuindo também na identificação de alterações na comunicação em contextos jurídicos.'
+  },
+  {
+    id: 3,
+    type: 'alternativa',
+    text: 'Um adolescente usa aparelho ortodôntico e se queixa de cansaço excessivo. Apresenta olheiras, posição inadequada de língua e respira pela boca constantemente. Qual equipe é mais indicada para investigação completa?',
+    options: ['A) Odontologia + Fono + Otorrino', 'B) Odontologia + Endocrino + Urologia', 'C) Odontologia + Dermatologia + Ortopedia'],
+    correct: 0,
+    explanation: 'O quadro indica respiração oral. O otorrino investiga obstruções nas vias aéreas, a fono reeduca respiração e funções orais, e a odontologia trata as alterações ortodônticas.'
+  },
+  {
+    id: 4,
+    type: 'alternativa',
+    text: 'João, 68 anos, sofreu um AVC e passou a ter dificuldades para se locomover e para engolir alimentos líquidos e pastosos. Quais profissionais são indicados?',
+    options: ['A) Nutricionista e psicólogo', 'B) Fisioterapeuta e fonoaudiólogo', 'C) Educador físico e farmacêutico'],
+    correct: 1,
+    explanation: 'O fisioterapeuta trata a recuperação motora e o equilíbrio, enquanto o fonoaudiólogo avalia e reabilita a deglutição e a musculatura oral, prevenindo engasgos e broncoaspiração.'
+  },
+  {
+    id: 5,
+    type: 'alternativa',
+    text: 'Uma criança em investigação com neuropediatra apresenta dificuldade na comunicação, rejeição a algumas texturas de alimentos e dificuldade em atividades de vida diária. O neuropediatra encaminhou para quais profissionais?',
+    options: ['A) Fonoaudiologia + Terapia Ocupacional', 'B) Nutrição + Fonoaudiologia', 'C) Ortopedia + Oftalmologia'],
+    correct: 0,
+    explanation: 'A Fono trabalha comunicação, linguagem e alimentação. A Terapia Ocupacional atua nas questões sensoriais, autonomia e coordenação motora no dia a dia.'
+  },
+  {
+    id: 6,
+    type: 'alternativa',
+    text: 'Um homem no pós-operatório de cirurgia bariátrica começou a ter dificuldades para mastigar e engolir, fazendo às vezes apenas uma refeição por dia. Quais profissionais podem auxiliar?',
+    options: ['A) Fonoaudiologia + Nutrição + Gastroenterologia', 'B) Fonoaudiologia + Gastroenterologia', 'C) Nutrição + Odontologia'],
+    correct: 0,
+    explanation: 'O gastroenterologista monitora o trato digestivo, o nutricionista orienta a progressão da dieta e a suplementação, e o fonoaudiólogo reeduca mastigação e deglutição para evitar engasgos e sobrecarga do estômago.'
+  },
+  {
+    id: 7,
+    type: 'dissertativa',
+    text: 'Qual é a principal função da Fonoaudiologia além da fala?',
+    answer: null,
+    keywords: ['audição','voz','deglutição','linguagem','comunicação','respiração','motricidade','alimentação'],
+    explanation: 'Além da fala, a Fonoaudiologia atua em: audição, voz, linguagem (oral e escrita), deglutição/alimentação, motricidade orofacial e respiração, entre outras áreas.'
+  },
+  {
+    id: 8,
+    type: 'alternativa',
+    text: 'Um paciente relata que ronca, mastiga de forma assimétrica e fala embolado. Qual área da Fonoaudiologia atua nesse caso?',
+    options: ['A) Audiologia', 'B) Fonoaudiologia Hospitalar', 'C) Motricidade Orofacial', 'D) Voz'],
+    correct: 2,
+    explanation: 'A Motricidade Orofacial cuida das funções de mastigação, deglutição, respiração e fala relacionadas à musculatura da face e boca, incluindo ronco e articulação alterada.'
+  },
+  {
+    id: 9,
+    type: 'alternativa',
+    text: 'Após AVC, um idoso passou a ter dificuldades para se expressar, esquecia o nome de objetos e se isolou por vergonha. Quais profissionais são indicados?',
+    options: ['A) Psicologia + Fonoaudiologia', 'B) Dermatologia + Cardiologia', 'C) Nutrição + Ortopedia'],
+    correct: 0,
+    explanation: 'A Fono reabilita a linguagem oral, enquanto a Psicologia oferece suporte emocional e incentiva o paciente a seguir o tratamento, trabalhando o acolhimento diante da nova condição.'
+  },
+  {
+    id: 10,
+    type: 'alternativa',
+    text: 'Um paciente retirou o tubo de respiração após dias internado na UTI. Apresenta dificuldade para falar e engolir, engasgando com a própria saliva. Quais profissionais são essenciais?',
+    options: ['A) Fonoaudiologia + Enfermagem', 'B) Dermatologia + Nutrição', 'C) Cardiologia + Ortopedia'],
+    correct: 0,
+    explanation: 'A Enfermagem acompanha os cuidados gerais e observa sinais durante alimentação e recuperação. A Fono reabilita comunicação e deglutição seguras após a extubação, prevenindo broncoaspiração.'
+  }
+];
+
+let current = 0;
+let score = 0;
+let userAnswers = [];
+let timerInterval = null;
+let timeLeft = 0;
+let answered = false;
+
+function startQuiz() {
+  current = 0; score = 0; userAnswers = [];
+  showScreen('screen-quiz');
+  loadQuestion();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function loadQuestion() {
+  answered = false;
+  const q = questions[current];
+  document.getElementById('q-num').textContent = current + 1;
+  document.getElementById('progress-fill').style.width = ((current / questions.length) * 100) + '%';
+  document.getElementById('q-type-tag').textContent = q.type === 'alternativa' ? 'Múltipla escolha' : 'Dissertativa';
+  document.getElementById('q-text').textContent = q.text;
+  document.getElementById('feedback-box').style.display = 'none';
+  document.getElementById('btn-next').style.display = 'none';
+
+  const wrap = document.getElementById('q-options-wrap');
+  wrap.innerHTML = '';
+
+  if (q.type === 'alternativa') {
+    const div = document.createElement('div');
+    div.className = 'options';
+    q.options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'opt-btn';
+      btn.textContent = opt;
+      btn.onclick = () => selectOption(i, btn, div);
+      div.appendChild(btn);
+    });
+    wrap.appendChild(div);
+    startTimer(20);
+  } else {
+    const ta = document.createElement('textarea');
+    ta.className = 'disc-area';
+    ta.placeholder = 'Digite sua resposta aqui...';
+    ta.id = 'disc-input';
+    const btn = document.createElement('button');
+    btn.className = 'btn-confirm';
+    btn.textContent = 'Confirmar resposta';
+    btn.onclick = () => confirmDisc(ta, btn);
+    wrap.appendChild(ta);
+    wrap.appendChild(btn);
+    startTimer(30);
+  }
+}
+
+function startTimer(seconds) {
+  clearInterval(timerInterval);
+  timeLeft = seconds;
+  const numEl = document.getElementById('timer-num');
+  numEl.classList.remove('urgent');
+  numEl.textContent = timeLeft;
+
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    numEl.textContent = timeLeft;
+    if (timeLeft <= 5) numEl.classList.add('urgent');
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      if (!answered) timeUp();
+    }
+  }, 1000);
+}
+
+function timeUp() {
+  answered = true;
+  const q = questions[current];
+  if (q.type === 'alternativa') {
+    const div = document.getElementById('q-options-wrap').querySelector('.options');
+    Array.from(div.children).forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === q.correct) btn.classList.add('reveal');
+    });
+    showFeedback('err', '⏱ Tempo esgotado!', 'A resposta correta era: ' + q.options[q.correct]);
+    userAnswers.push({ q: current, given: null, correct: false });
+  } else {
+    const ta = document.getElementById('disc-input');
+    if (ta) ta.disabled = true;
+    const confirmBtn = document.querySelector('.btn-confirm');
+    if (confirmBtn) confirmBtn.disabled = true;
+    showFeedback('err', '⏱ Tempo esgotado!', 'Veja o gabarito no resultado final.');
+    userAnswers.push({ q: current, given: '', correct: false });
+  }
+  document.getElementById('btn-next').style.display = 'block';
+}
+
+function selectOption(idx, btn, div) {
+  if (answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+  const q = questions[current];
+  Array.from(div.children).forEach((b, i) => {
+    b.disabled = true;
+    if (i === q.correct) b.classList.add('correct');
+    if (i === idx && idx !== q.correct) b.classList.add('wrong');
+  });
+  const isCorrect = idx === q.correct;
+  if (isCorrect) score++;
+  userAnswers.push({ q: current, given: q.options[idx], correct: isCorrect });
+  showFeedback(
+    isCorrect ? 'ok' : 'err',
+    isCorrect ? '✓ Correto!' : '✗ Incorreto',
+    q.explanation
+  );
+  document.getElementById('btn-next').style.display = 'block';
+}
+
+function confirmDisc(ta, btn) {
+  if (answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+  ta.disabled = true;
+  btn.disabled = true;
+  const q = questions[current];
+  const userText = ta.value.trim().toLowerCase();
+  const matches = q.keywords.filter(kw => {
+    const norm = kw.toLowerCase();
+    return userText.includes(norm) || similarWord(userText, norm);
+  });
+  const isCorrect = matches.length >= 2;
+  if (isCorrect) score++;
+  userAnswers.push({ q: current, given: ta.value.trim(), correct: isCorrect });
+  const type = isCorrect ? 'ok' : matches.length === 1 ? 'partial' : 'err';
+  const label = isCorrect ? '✓ Boa resposta!' : matches.length === 1 ? '~ Parcialmente correto' : '✗ Resposta incompleta';
+  showFeedback(type, label, q.explanation);
+  document.getElementById('btn-next').style.display = 'block';
+}
+
+function similarWord(text, keyword) {
+  const words = text.split(/\s+/);
+  return words.some(w => levenshtein(w, keyword) <= Math.floor(keyword.length * 0.3));
+}
+
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({length: m+1}, (_, i) => Array.from({length: n+1}, (_, j) => j === 0 ? i : i === 0 ? j : 0));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+function showFeedback(type, label, text) {
+  const box = document.getElementById('feedback-box');
+  box.className = 'feedback-box ' + type;
+  document.getElementById('feedback-label').textContent = label;
+  document.getElementById('feedback-text').textContent = text;
+  box.style.display = 'block';
+}
+
+function nextQuestion() {
+  current++;
+  if (current >= questions.length) {
+    showResult();
+  } else {
+    loadQuestion();
+  }
+}
+
+function showResult() {
+  clearInterval(timerInterval);
+  showScreen('screen-result');
+
+  const pct = Math.round((score / questions.length) * 100);
+  let emoji, msg;
+  if (pct >= 80) { emoji = '🎉 Excelente!'; }
+  else if (pct >= 60) { emoji = '👏 Bom trabalho!'; }
+  else { emoji = '📚 Continue estudando!'; }
+
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-score').textContent = score + '/' + questions.length;
+  document.getElementById('result-label').textContent = pct + '% de acertos';
+
+  const list = document.getElementById('gabarito-list');
+  list.innerHTML = '';
+  questions.forEach((q, i) => {
+    const ua = userAnswers[i];
+    const isOk = ua && ua.correct;
+    const item = document.createElement('div');
+    item.className = 'gab-item';
+    const preview = q.text.length > 55 ? q.text.slice(0, 55) + '…' : q.text;
+    item.innerHTML = `
+      <div class="gab-header" onclick="toggleGab(this)">
+        <div class="gab-num">${i+1}</div>
+        <div class="gab-q-preview">${preview}</div>
+        <div class="gab-status">${isOk ? '✅' : '❌'}</div>
+      </div>
+      <div class="gab-body">
+        <div class="gab-answer-label">Resposta correta</div>
+        <div class="gab-correct">${q.type === 'alternativa' ? q.options[q.correct] : q.keywords.slice(0,4).join(', ') + '...'}</div>
+        ${ua && ua.given !== null ? `<div class="gab-user"><div class="gab-answer-label">Sua resposta</div>${ua.given || '<em>sem resposta</em>'}</div>` : ''}
+        <div class="gab-explanation">${q.explanation}</div>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function toggleGab(header) {
+  const body = header.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+function restartQuiz() {
+  current = 0; score = 0; userAnswers = [];
+  showScreen('screen-intro');
+}
+</script>
+</body>
+</html>
